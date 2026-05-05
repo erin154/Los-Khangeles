@@ -261,7 +261,7 @@ export default function CourtView() {
                     <tr key={loan.account_id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
                       <td className="px-5 py-3 text-sm">
                         <Link
-                          href={`/court/account/${loan.account_id}`}
+                          href={`/court/loan/${loan.account_id}`}
                           className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                         >
                           {loan.display_name}

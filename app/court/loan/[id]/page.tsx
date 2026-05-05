@@ -30,23 +30,32 @@ export default function LoanDetailPage() {
 
   useEffect(() => { if (id) loadLoanDetail() }, [id])
 
-  async function loadLoanDetail() {
-    const [{ data: acc }, { data: loanAccount }, { data: txns }] = await Promise.all([
-      supabase.from('accounts').select('id, display_name, email, type').eq('id', id).single(),
-      supabase.from('loan_accounts').select('interest_accrued').eq('account_id', id).single(),
-      supabase
-        .from('transactions')
-        .select('id, type, amount, memo, created_at')
-        .or(`and(type.eq.loan_disbursement,recipient_id.eq.${id}),and(type.eq.loan_repayment,sender_id.eq.${id})`)
-        .order('created_at', { ascending: false }),
-    ])
-
-    if (!acc) { router.push('/court'); return }
-    setAccount(acc)
-    setInterest(loanAccount?.interest_accrued ?? 0)
-    setLoanHistory(txns || [])
-    setLoading(false)
-  }
+    async function loadLoanDetail() {
+        const [{ data: acc }, { data: loanAccount }, { data: txns }] = await Promise.all([
+          supabase
+            .from('accounts')
+            .select('id, display_name, email, type')
+            .eq('id', id)
+            .single(),
+          supabase
+            .from('loan_accounts')
+            .select('interest_accrued')
+            .eq('account_id', id)
+            .maybeSingle(),
+          supabase
+            .from('transactions')
+            .select('id, type, amount, memo, created_at')
+            .in('type', ['loan_disbursement', 'loan_repayment'])
+            .or(`recipient_id.eq.${id},sender_id.eq.${id}`)
+            .order('created_at', { ascending: false }),
+        ])
+      
+        if (!acc) { router.push('/court'); return }
+        setAccount(acc)
+        setInterest(loanAccount?.interest_accrued ?? 0)
+        setLoanHistory(txns || [])
+        setLoading(false)
+      }
 
   const totalDisbursed = loanHistory
     .filter(t => t.type === 'loan_disbursement')

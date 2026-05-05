@@ -5,12 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 type Account = {
-  id: string
-  type: string
-  display_name: string
-  email: string
-  balance: number
-}
+    id: string
+    type: string
+    display_name: string
+    email: string
+    balance?: number
+  }
 
 type Transaction = {
   id: string

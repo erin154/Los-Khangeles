@@ -1,5 +1,6 @@
 'use client'
 
+import Nav from '@/components/Nav'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -183,21 +184,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
 
-      {/* Header */}
-      <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Los Khangeles</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm capitalize">
-            {account?.display_name} · {account?.type}
-          </span>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); router.push('/') }}
-            className="text-sm text-gray-500 hover:text-white transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+    <Nav displayName={`${account?.display_name} · ${account?.type}`} />
 
       <main className="max-w-2xl mx-auto px-6 py-10">
 

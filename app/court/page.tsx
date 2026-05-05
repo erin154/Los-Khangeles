@@ -260,12 +260,12 @@ export default function CourtView() {
                   {filteredLoans.map(loan => (
                     <tr key={loan.account_id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
                       <td className="px-5 py-3 text-sm">
-                        <Link
-                          href={`/court/loan/${loan.account_id}`}
-                          className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                        >
-                          {loan.display_name}
-                        </Link>
+                      <Link
+                        href={`/court/loan/${loan.account_id}`}
+                        className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                      >
+                        {loan.display_name}
+                       </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-400 text-sm capitalize">{loan.account_type}</td>
                       <td className="px-5 py-3 text-right text-red-400 font-medium text-sm">

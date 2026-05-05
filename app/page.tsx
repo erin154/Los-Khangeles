@@ -43,7 +43,7 @@ export default function LoginPage() {
         type: accountType,
         display_name: displayName,
         email: email,
-        auth_user_id: data.user.id,
+        auth_user_id: data.user?.id,
         balance: 0
       })
     if (accountError) {

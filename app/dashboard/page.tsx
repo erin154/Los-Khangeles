@@ -9,7 +9,7 @@ type Account = {
     type: string
     display_name: string
     email: string
-    balance?: number
+    balance: number
   }
 
 type Transaction = {

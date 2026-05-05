@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 type Account = {
   id: string
@@ -27,12 +28,12 @@ export default function CourtView() {
   const [individuals, setIndividuals] = useState<Account[]>([])
   const [corporations, setCorporations] = useState<Account[]>([])
   const [loans, setLoans] = useState<LoanBalance[]>([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   useEffect(() => {
     loadData()
-    // Auto-refresh every 30 seconds
     const interval = setInterval(loadData, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -64,10 +65,22 @@ export default function CourtView() {
     setLoading(false)
   }
 
+  const filteredIndividuals = individuals.filter(a =>
+    a.display_name.toLowerCase().includes(search.toLowerCase()) ||
+    a.email.toLowerCase().includes(search.toLowerCase())
+  )
+  const filteredCorporations = corporations.filter(a =>
+    a.display_name.toLowerCase().includes(search.toLowerCase()) ||
+    a.email.toLowerCase().includes(search.toLowerCase())
+  )
+  const filteredLoans = loans.filter(a =>
+    a.display_name.toLowerCase().includes(search.toLowerCase())
+  )
+
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'individuals', label: 'Individuals', count: individuals.length },
-    { key: 'corporations', label: 'Corporations', count: corporations.length },
-    { key: 'loans', label: 'Loans', count: loans.length },
+    { key: 'individuals', label: 'Individuals', count: filteredIndividuals.length },
+    { key: 'corporations', label: 'Corporations', count: filteredCorporations.length },
+    { key: 'loans', label: 'Loans', count: filteredLoans.length },
   ]
 
   if (loading) {
@@ -122,6 +135,17 @@ export default function CourtView() {
           </div>
         </div>
 
+        {/* Search */}
+        <div className="mb-6">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            className="w-full max-w-sm px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+          />
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1 mb-8 w-fit">
           {tabs.map(t => (
@@ -157,10 +181,17 @@ export default function CourtView() {
                 </tr>
               </thead>
               <tbody>
-                {individuals.map((acc, i) => (
+                {filteredIndividuals.map((acc, i) => (
                   <tr key={acc.id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
                     <td className="px-5 py-3 text-gray-600 text-sm">{i + 1}</td>
-                    <td className="px-5 py-3 text-white font-medium text-sm">{acc.display_name}</td>
+                    <td className="px-5 py-3 text-sm">
+                      <Link
+                        href={`/court/account/${acc.id}`}
+                        className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                      >
+                        {acc.display_name}
+                      </Link>
+                    </td>
                     <td className="px-5 py-3 text-gray-400 text-sm">{acc.email}</td>
                     <td className={`px-5 py-3 text-right font-bold text-sm ${acc.balance < 0 ? 'text-red-400' : 'text-green-400'}`}>
                       {Number(acc.balance).toFixed(2)} ᗫ
@@ -185,10 +216,17 @@ export default function CourtView() {
                 </tr>
               </thead>
               <tbody>
-                {corporations.map((acc, i) => (
+                {filteredCorporations.map((acc, i) => (
                   <tr key={acc.id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
                     <td className="px-5 py-3 text-gray-600 text-sm">{i + 1}</td>
-                    <td className="px-5 py-3 text-white font-medium text-sm">{acc.display_name}</td>
+                    <td className="px-5 py-3 text-sm">
+                      <Link
+                        href={`/court/account/${acc.id}`}
+                        className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                      >
+                        {acc.display_name}
+                      </Link>
+                    </td>
                     <td className="px-5 py-3 text-gray-400 text-sm">{acc.email}</td>
                     <td className={`px-5 py-3 text-right font-bold text-sm ${acc.balance < 0 ? 'text-red-400' : 'text-green-400'}`}>
                       {Number(acc.balance).toFixed(2)} ᗫ
@@ -202,7 +240,7 @@ export default function CourtView() {
 
         {/* Loans Tab */}
         {tab === 'loans' && (
-          loans.length === 0 ? (
+          filteredLoans.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-gray-500">No active loans.</p>
             </div>
@@ -219,9 +257,16 @@ export default function CourtView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loans.map(loan => (
+                  {filteredLoans.map(loan => (
                     <tr key={loan.account_id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
-                      <td className="px-5 py-3 text-white font-medium text-sm">{loan.display_name}</td>
+                      <td className="px-5 py-3 text-sm">
+                        <Link
+                          href={`/court/account/${loan.account_id}`}
+                          className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                        >
+                          {loan.display_name}
+                        </Link>
+                      </td>
                       <td className="px-5 py-3 text-gray-400 text-sm capitalize">{loan.account_type}</td>
                       <td className="px-5 py-3 text-right text-red-400 font-medium text-sm">
                         {Number(loan.principal_outstanding).toFixed(2)} ᗫ

@@ -1,4 +1,5 @@
 'use client'
+// hi
 
 import { useState, useEffect } from 'react'
 import { supabasePublic as supabase } from '@/lib/supabasePublic'
@@ -120,8 +121,8 @@ export default function AccountDetailPage() {
               const label = tx.type === 'sale'
                 ? (isIncoming ? 'Sale' : 'Purchase')
                 : tx.type === 'wage_payment'
-                ? (isIncoming ? 'Wage Received' : 'Wage Paid')
-                : TYPE_LABELS[tx.type] || tx.type
+                  ? (isIncoming ? 'Wage Received' : 'Wage Paid')
+                  : TYPE_LABELS[tx.type] || tx.type
 
               return (
                 <div

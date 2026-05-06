@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabasePublic as supabase } from '@/lib/supabasePublic'
 import Link from 'next/link'
 
 type Account = {

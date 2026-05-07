@@ -37,6 +37,19 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+
+    const { data: existing } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('auth_user_id', data.user?.id)
+      .maybeSingle()
+
+    if (existing) {
+      setError('An account already exists for this user.')
+      setLoading(false)
+      return
+    }
+
     const { error: accountError } = await supabase
       .from('accounts')
       .insert({
@@ -47,7 +60,11 @@ export default function LoginPage() {
         balance: 0
       })
     if (accountError) {
-      setError(accountError.message)
+      if (accountError.message.includes('accounts_auth_user_id_key')) {
+        setError('An account already exists for this user.')
+      } else {
+        setError(accountError.message)
+      }
     } else {
       router.push('/dashboard')
     }

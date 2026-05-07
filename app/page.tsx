@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { getDeviceToken, type DeviceToken } from '@/lib/fingerprint'
+import BanScreen from '@/components/BanScreen'
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login')
@@ -12,18 +14,62 @@ export default function LoginPage() {
   const [accountType, setAccountType] = useState('individual')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [banned, setBanned] = useState(false)
   const router = useRouter()
+
+  const tokenRef = useRef<DeviceToken | null>(null)
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('__fp_banned') === '1') { setBanned(true); return }
+    } catch {}
+    getDeviceToken().then(t => { tokenRef.current = t })
+  }, [])
+
+  if (banned) return <BanScreen />
+
+  function triggerBan() {
+    try { localStorage.setItem('__fp_banned', '1') } catch {}
+    setBanned(true)
+  }
+
+  async function ensureToken(): Promise<DeviceToken> {
+    if (tokenRef.current) return tokenRef.current
+    const t = await getDeviceToken()
+    tokenRef.current = t
+    return t
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
-    } else {
-      router.push('/dashboard')
+
+    const token = await ensureToken()
+
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, deviceToken: token.token }),
+    })
+
+    const json = await res.json()
+
+    if (json.banned) { triggerBan(); return }
+    if (json.blocked) { setError('🚨'); setLoading(false); return }
+
+    if (!res.ok) {
+      setError(json.error ?? 'Invalid email or password')
+      setLoading(false)
+      return
     }
+
+    // Restore Supabase session the API route established
+    if (json.session) {
+      await supabase.auth.setSession(json.session)
+    }
+
+    router.push('/dashboard')
     setLoading(false)
   }
 
@@ -31,40 +77,40 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
 
-    const { data: existing } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('auth_user_id', data.user?.id)
-      .maybeSingle()
+    const token = await ensureToken()
 
-    if (existing) {
-      setError('An account already exists for this user.')
-      setLoading(false)
-      return
-    }
+    const res = await fetch('/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        displayName,
+        accountType,
+        deviceToken: token.token,
+      }),
+    })
 
-    const { error: accountError } = await supabase
-      .from('accounts')
-      .insert({
-        type: accountType,
-        display_name: displayName,
-        email: email,
-        auth_user_id: data.user?.id,
-        balance: 0
-      })
-    if (accountError) {
-      if (accountError.message.includes('accounts_auth_user_id_key')) {
+    const json = await res.json()
+
+    if (json.banned) { triggerBan(); return }
+    if (json.blocked) { setError('🚨'); setLoading(false); return }
+
+    if (!res.ok) {
+      if (json.error?.includes('accounts_auth_user_id_key')) {
         setError('An account already exists for this user.')
       } else {
-        setError(accountError.message)
+        setError(json.error ?? 'Signup failed')
       }
+      setLoading(false)
+      return
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError('Account created, please log in.')
+      setMode('login')
     } else {
       router.push('/dashboard')
     }
@@ -157,7 +203,11 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg px-4 py-2">
+            <p className={`text-sm rounded-lg px-4 py-2 ${
+              error === '🚨'
+                ? 'text-5xl text-center bg-transparent border-0 py-4'
+                : 'text-red-400 bg-red-950 border border-red-800'
+            }`}>
               {error}
             </p>
           )}

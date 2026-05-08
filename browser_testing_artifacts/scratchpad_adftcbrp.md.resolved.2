@@ -1,0 +1,17 @@
+# Test Plan - Dave's Banking App Flow
+
+- [x] Navigate to `http://localhost:3000` (Note: 3001 connection refused, using 3000)
+- [ ] Sign up 'Dave' (`dave@test.com` / `Password123!` / `Individual`)
+    - [X] Attempted signup
+    - [X] Error: `permission denied for table accounts` (Internal Server Error 500 on /signup)
+- [ ] Verify Dashboard loads
+- [ ] Navigate to `http://localhost:3000/court` and verify Dave is listed
+- [ ] Navigate to `http://localhost:3000/history`
+- [ ] Navigate to `http://localhost:3000/loans`
+- [ ] Perform a self-transaction (sale) for 1.00 with password
+- [ ] Report results
+
+## Findings
+- Port 3001 is not active; port 3000 is being used.
+- Signup for 'Dave' failed with a database permission error. This suggests that the Supabase RLS policies or service role key configuration might be incorrect for the fresh project.
+

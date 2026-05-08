@@ -4,7 +4,7 @@ import { checkFingerprintForLogin } from '@/lib/fingerprintGuard'
 
 function adminClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },
   )
@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
   }
 
   const anonClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
     { auth: { persistSession: false } },
   )
 
@@ -43,8 +43,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ blocked: true }, { status: 403 })
   }
 
-  return NextResponse.json({
-    ok: true,
-    session: signInData.session,
-  })
+  const { access_token, refresh_token } = signInData.session
+
+  const response = NextResponse.json({ ok: true })
+
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  }
+
+  response.cookies.set('sb-access-token', access_token, cookieOpts)
+  response.cookies.set('sb-refresh-token', refresh_token, cookieOpts)
+
+  return response
 }

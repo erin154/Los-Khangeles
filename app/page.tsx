@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { getDeviceToken, type DeviceToken } from '@/lib/fingerprint'
 import BanScreen from '@/components/BanScreen'
@@ -64,12 +63,9 @@ export default function LoginPage() {
       return
     }
 
-    // Restore Supabase session the API route established
-    if (json.session) {
-      await supabase.auth.setSession(json.session)
-    }
-
+    // Redirect to dashboard. The server handles the session via cookies.
     router.push('/dashboard')
+    router.refresh()
     setLoading(false)
   }
 
@@ -107,13 +103,9 @@ export default function LoginPage() {
       return
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError) {
-      setError('Account created, please log in.')
-      setMode('login')
-    } else {
-      router.push('/dashboard')
-    }
+    // After signup, switch to login mode
+    setError('Account created! Please log in.')
+    setMode('login')
     setLoading(false)
   }
 

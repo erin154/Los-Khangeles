@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabasePublic as supabase } from '@/lib/supabasePublic'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getLoanDetail } from '@/app/actions'
 
 type Account = {
   id: string
@@ -31,29 +31,12 @@ export default function LoanDetailPage() {
   useEffect(() => { if (id) loadLoanDetail() }, [id])
 
     async function loadLoanDetail() {
-        const [{ data: acc }, { data: loanAccount }, { data: txns }] = await Promise.all([
-          supabase
-            .from('accounts')
-            .select('id, display_name, email, type')
-            .eq('id', id)
-            .single(),
-          supabase
-            .from('loan_accounts')
-            .select('interest_accrued')
-            .eq('account_id', id)
-            .maybeSingle(),
-          supabase
-            .from('transactions')
-            .select('id, type, amount, memo, created_at')
-            .in('type', ['loan_disbursement', 'loan_repayment'])
-            .or(`recipient_id.eq.${id},sender_id.eq.${id}`)
-            .order('created_at', { ascending: false }),
-        ])
+        const { account: acc, loan, history } = await getLoanDetail(id)
       
         if (!acc) { router.push('/court'); return }
         setAccount(acc)
-        setInterest(loanAccount?.interest_accrued ?? 0)
-        setLoanHistory(txns || [])
+        setInterest(loan?.interest_accrued ?? 0)
+        setLoanHistory(history || [])
         setLoading(false)
       }
 
@@ -159,7 +142,6 @@ export default function LoanDetailPage() {
             })}
           </div>
         )}
-
       </main>
     </div>
   )

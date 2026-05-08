@@ -2,8 +2,8 @@
 
 import Nav from '@/components/Nav'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { getDashboardData, performTransaction, searchAccounts } from '@/app/actions'
 
 type Account = {
     id: string
@@ -43,46 +43,29 @@ export default function Dashboard() {
   const [selectedRecipient, setSelectedRecipient] = useState<Account | null>(null)
   const [serviceDescription, setServiceDescription] = useState('')
   const [jobPosition, setJobPosition] = useState('')
+  const [password, setPassword] = useState('')
   const [txLoading, setTxLoading] = useState(false)
   const [txError, setTxError] = useState('')
 
   useEffect(() => { loadDashboard() }, [])
 
   async function loadDashboard() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
-
-    const { data: accountData } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('auth_user_id', session.user.id)
-      .single()
-
-    if (!accountData) { router.push('/'); return }
-    setAccount(accountData)
-    await loadTransactions(accountData.id)
-    setLoading(false)
+    try {
+      const { account, transactions } = await getDashboardData()
+      setAccount(account)
+      setTransactions(transactions)
+      setLoading(false)
+    } catch (err) {
+      router.push('/')
+    }
   }
 
-  async function loadTransactions(accountId: string) {
-    const { data } = await supabase
-      .from('transactions')
-      .select(`*, sender:sender_id(display_name), recipient:recipient_id(display_name)`)
-      .or(`sender_id.eq.${accountId},recipient_id.eq.${accountId}`)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setTransactions(data || [])
-  }
-
-  async function searchRecipients(query: string) {
+  async function handleSearchRecipients(query: string) {
+    setRecipientSearch(query)
     if (!query) { setRecipientResults([]); return }
-    const { data } = await supabase
-      .from('accounts')
-      .select('id, display_name, type, email')
-      .ilike('display_name', `%${query}%`)
-      .neq('id', account?.id)
-      .limit(5)
-    setRecipientResults(data || [])
+    const results = await searchAccounts(query)
+    // Filter out self
+    setRecipientResults(results.filter(r => r.id !== account?.id) || [])
   }
 
   async function submitTransaction() {
@@ -90,56 +73,33 @@ export default function Dashboard() {
     setTxLoading(true)
     setTxError('')
 
-    const amountNum = parseFloat(amount)
-    if (!amountNum || amountNum <= 0) {
-      setTxError('Please enter a valid amount.')
-      setTxLoading(false)
-      return
-    }
-
-    const txData: Record<string, unknown> = {
+    const res = await performTransaction({
+      amount,
+      recipientId: selectedRecipient?.id,
       type: txType,
-      amount: amountNum,
-      memo: memo || null,
-    }
+      memo,
+      password,
+      service_description: serviceDescription,
+      job_position: jobPosition
+    })
 
-    if (txType === 'loan_repayment') {
-      const { data: govAccount } = await supabase
-        .from('accounts').select('id').eq('type', 'government').single()
-      txData.sender_id = account.id
-      txData.recipient_id = govAccount?.id
+    if (res.error) {
+      setTxError(res.error)
+      setTxLoading(false)
     } else {
-      txData.sender_id = account.id
-      txData.recipient_id = selectedRecipient?.id || null
+      setShowModal(false)
+      resetForm()
+      await new Promise(resolve => setTimeout(resolve, 400))
+      await loadDashboard()
+      setTxLoading(false)
     }
-
-    if (txType === 'service_payment') txData.service_description = serviceDescription
-    if (txType === 'wage_payment') txData.job_position = jobPosition
-
-    const { error } = await supabase.from('transactions').insert(txData)
-
-    if (error) {
-      if (error.message.includes('BALANCE_FLOOR_EXCEEDED')) {
-        setTxError('This transaction would exceed your debt limit of 50 doubloons.')
-      } else if (error.message.includes('OVERPAYMENT_BLOCKED')) {
-        setTxError('Repayment amount exceeds your outstanding loan balance.')
-      } else {
-        setTxError(error.message)
-      }
-    } else {
-        setShowModal(false)
-        resetForm()
-        await new Promise(resolve => setTimeout(resolve, 400))
-        await loadDashboard()
-      }
-    setTxLoading(false)
   }
 
   function resetForm() {
     setTxType('sale'); setAmount(''); setMemo('')
     setRecipientSearch(''); setRecipientResults([])
     setSelectedRecipient(null); setServiceDescription('')
-    setJobPosition(''); setTxError('')
+    setJobPosition(''); setPassword(''); setTxError('')
   }
 
   function getTransactionLabel(tx: Transaction) {
@@ -289,7 +249,7 @@ export default function Dashboard() {
                       <input
                         type="text"
                         value={recipientSearch}
-                        onChange={e => { setRecipientSearch(e.target.value); searchRecipients(e.target.value) }}
+                        onChange={e => { handleSearchRecipients(e.target.value) }}
                         placeholder="Search by name..."
                         className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                       />
@@ -369,6 +329,18 @@ export default function Dashboard() {
                 />
               </div>
 
+              {/* Password Verification */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
               {txError && (
                 <p className="text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg px-4 py-2">
                   {txError}
@@ -377,7 +349,7 @@ export default function Dashboard() {
 
               <button
                 onClick={submitTransaction}
-                disabled={txLoading || (needsRecipient && !selectedRecipient) || !amount}
+                disabled={txLoading || (needsRecipient && !selectedRecipient) || !amount || !password}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors"
               >
                 {txLoading ? 'Submitting...' : 'Submit Transaction'}

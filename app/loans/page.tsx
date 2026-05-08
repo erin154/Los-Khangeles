@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import Link from 'next/link'
+import { getUserLoans } from '@/app/actions'
 
 type LoanEntry = {
   id: string
@@ -26,7 +26,6 @@ type LoanSummary = {
 export default function LoansPage() {
   const router = useRouter()
   const [displayName, setDisplayName] = useState('')
-  const [accountId, setAccountId] = useState('')
   const [accountType, setAccountType] = useState('')
   const [principal, setPrincipal] = useState(0)
   const [interest, setInterest] = useState(0)
@@ -38,60 +37,35 @@ export default function LoansPage() {
   useEffect(() => { loadLoans() }, [])
 
   async function loadLoans() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    try {
+      const { account, loanAccount, history, allLoans } = await getUserLoans()
+      
+      setDisplayName(`${account.display_name} · ${account.type}`)
+      setAccountType(account.type)
 
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('id, display_name, type')
-      .eq('auth_user_id', session.user.id)
-      .single()
+      if (account.type === 'government') {
+        setAllLoans(allLoans || [])
+      } else {
+        if (loanAccount) {
+          setHasLoan(true)
+          setInterest(loanAccount.interest_accrued)
+        }
 
-    if (!account) { router.push('/'); return }
-    setDisplayName(`${account.display_name} · ${account.type}`)
-    setAccountId(account.id)
-    setAccountType(account.type)
+        const entries = history || []
+        setLoanHistory(entries)
 
-    if (account.type === 'government') {
-      // Government sees all loan accounts
-      const { data: loanData } = await supabase
-        .from('loan_balances')
-        .select('*')
-        .order('total_owed', { ascending: false })
-      setAllLoans(loanData || [])
-    } else {
-      // Regular user sees their own loan
-      const { data: loanAccount } = await supabase
-        .from('loan_accounts')
-        .select('interest_accrued')
-        .eq('account_id', account.id)
-        .maybeSingle()
-
-      if (loanAccount) {
-        setHasLoan(true)
-        setInterest(loanAccount.interest_accrued)
+        const totalDisbursed = entries
+          .filter(t => t.type === 'loan_disbursement')
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+        const totalRepaid = entries
+          .filter(t => t.type === 'loan_repayment')
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+        setPrincipal(totalDisbursed - totalRepaid)
       }
-
-      const { data: txns } = await supabase
-        .from('transactions')
-        .select('id, type, amount, memo, created_at')
-        .in('type', ['loan_disbursement', 'loan_repayment'])
-        .or(`recipient_id.eq.${account.id},sender_id.eq.${account.id}`)
-        .order('created_at', { ascending: false })
-
-      const entries = txns || []
-      setLoanHistory(entries)
-
-      const totalDisbursed = entries
-        .filter(t => t.type === 'loan_disbursement')
-        .reduce((sum, t) => sum + t.amount, 0)
-      const totalRepaid = entries
-        .filter(t => t.type === 'loan_repayment')
-        .reduce((sum, t) => sum + t.amount, 0)
-      setPrincipal(totalDisbursed - totalRepaid)
+      setLoading(false)
+    } catch (err) {
+      router.push('/')
     }
-
-    setLoading(false)
   }
 
   if (loading) {

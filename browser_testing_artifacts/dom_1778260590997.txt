@@ -1,0 +1,10 @@
+Los Khangeles
+City Financial Platform
+[0] (435,363)<button class='flex-1 py-2 rounded-md text-sm font-medium transition-colors bg-white text-gray-900'>Log In />
+[1] (565,363)<button class='flex-1 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white'>Sign Up />
+[2] (500,442)<label class='block text-sm font-medium text-gray-300 mb-1'>Email />
+[3] (500,492)<input class='w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500' placeholder='you@school.edu' />
+[4] (500,558)<label class='block text-sm font-medium text-gray-300 mb-1'>Password />
+[5] (500,607)<input class='w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500' placeholder='••••••••' />
+Invalid login credentials
+[6] (500,769)<button class='w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors'>Log In />

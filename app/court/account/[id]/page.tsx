@@ -1,10 +1,9 @@
 'use client'
-// hi
 
 import { useState, useEffect } from 'react'
-import { supabasePublic as supabase } from '@/lib/supabasePublic'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getAccountDetail } from '@/app/actions'
 
 type Account = {
   id: string
@@ -48,14 +47,7 @@ export default function AccountDetailPage() {
   useEffect(() => { if (id) loadAccount() }, [id])
 
   async function loadAccount() {
-    const [{ data: acc }, { data: txns }] = await Promise.all([
-      supabase.from('accounts').select('*').eq('id', id).single(),
-      supabase
-        .from('transactions')
-        .select(`*, sender:sender_id(display_name), recipient:recipient_id(display_name)`)
-        .or(`sender_id.eq.${id},recipient_id.eq.${id}`)
-        .order('created_at', { ascending: false }),
-    ])
+    const { account: acc, transactions: txns } = await getAccountDetail(id)
 
     if (!acc) { router.push('/court'); return }
     setAccount(acc)

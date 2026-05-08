@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
+import { getTransactionHistory } from '@/app/actions'
 
 type Transaction = {
   id: string
@@ -52,28 +52,16 @@ export default function HistoryPage() {
   }, [activeFilter, transactions])
 
   async function loadHistory() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
-
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('id, display_name, type')
-      .eq('auth_user_id', session.user.id)
-      .single()
-
-    if (!account) { router.push('/'); return }
-    setDisplayName(`${account.display_name} · ${account.type}`)
-    setAccountId(account.id)
-
-    const { data } = await supabase
-      .from('transactions')
-      .select(`*, sender:sender_id(display_name), recipient:recipient_id(display_name)`)
-      .or(`sender_id.eq.${account.id},recipient_id.eq.${account.id}`)
-      .order('created_at', { ascending: false })
-
-    setTransactions(data || [])
-    setFiltered(data || [])
-    setLoading(false)
+    try {
+      const { account, transactions: data } = await getTransactionHistory()
+      setDisplayName(`${account.display_name} · ${account.type}`)
+      setAccountId(account.id)
+      setTransactions(data || [])
+      setFiltered(data || [])
+      setLoading(false)
+    } catch (err) {
+      router.push('/')
+    }
   }
 
   if (loading) {

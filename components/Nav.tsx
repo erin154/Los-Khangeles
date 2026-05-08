@@ -1,12 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { usePathname } from 'next/navigation'
 
 export default function Nav({ displayName }: { displayName: string }) {
   const pathname = usePathname()
-  const router = useRouter()
 
   const links = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -14,9 +12,8 @@ export default function Nav({ displayName }: { displayName: string }) {
     { href: '/history', label: 'History' },
   ]
 
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/')
+  function handleSignOut() {
+    window.location.href = '/logout'
   }
 
   return (

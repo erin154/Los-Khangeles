@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabasePublic as supabase } from '@/lib/supabasePublic'
 import Link from 'next/link'
+import { getCourtData } from '@/app/actions'
 
 type Account = {
   id: string
@@ -39,23 +39,10 @@ export default function CourtView() {
   }, [])
 
   async function loadData() {
-    const [{ data: indiv }, { data: corps }, { data: loanData }] = await Promise.all([
-      supabase
-        .from('accounts')
-        .select('*')
-        .eq('type', 'individual')
-        .eq('is_active', true)
-        .order('balance', { ascending: false }),
-      supabase
-        .from('accounts')
-        .select('*')
-        .eq('type', 'corporate')
-        .eq('is_active', true)
-        .order('balance', { ascending: false }),
-      supabase
-        .from('loan_balances')
-        .select('*')
-        .order('total_owed', { ascending: false }),
+    const [{ data: indiv }, { data: corps }, { loans: loanData }] = await Promise.all([
+      getCourtData('individuals'),
+      getCourtData('corporations'),
+      getCourtData('loans'),
     ])
 
     setIndividuals(indiv || [])

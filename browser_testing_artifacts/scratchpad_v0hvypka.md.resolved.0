@@ -1,0 +1,11 @@
+# Testing Checklist
+
+- [ ] Sign up Alice (alice@test.com)
+- [ ] Verify Alice redirected to Dashboard
+- [ ] Log out Alice
+- [ ] Sign up Bob (bob@test.com)
+- [ ] Verify Bob's balance is 0.00
+- [ ] Bob attempts to send 10.00 to Alice
+- [ ] Verify Bob's transaction result (Success/Failure)
+- [ ] Verify Alice and Bob are listed in /court
+- [ ] Report findings

@@ -1,0 +1,10 @@
+# Test Plan - Dave's Banking App Flow
+
+- [ ] Navigate to `http://localhost:3001`
+- [ ] Sign up 'Dave' (`dave@test.com` / `Password123!` / `Individual`)
+- [ ] Verify Dashboard loads
+- [ ] Navigate to `http://localhost:3001/court` and verify Dave is listed
+- [ ] Navigate to `http://localhost:3001/history`
+- [ ] Navigate to `http://localhost:3001/loans`
+- [ ] Perform a self-transaction (sale) for 1.00 with password
+- [ ] Report results

@@ -1,0 +1,20 @@
+# Test Plan - Dave's Banking App Flow
+
+- [x] Navigate to `http://localhost:3000` (Note: 3001 connection refused, using 3000)
+- [ ] Sign up 'Dave' (`dave@test.com` / `Password123!` / `Individual`)
+    - [X] Attempted signup
+    - [X] Error: `permission denied for table accounts` (Internal Server Error 500 on /signup)
+- [ ] Verify Dashboard loads
+- [x] Navigate to `http://localhost:3000/court` and verify Dave is listed
+    - [X] Page loaded, but all counts are 0 (Individuals: 0, Corporations: 0, Loans: 0).
+- [ ] Navigate to `http://localhost:3000/history`
+- [ ] Navigate to `http://localhost:3000/loans`
+- [ ] Perform a self-transaction (sale) for 1.00 with password
+- [ ] Report results
+
+## Findings
+- Port 3001 is not active; port 3000 is being used.
+- Signup for 'Dave' failed with a database permission error: `permission denied for table accounts`.
+- The `/court` page is accessible but contains no data, confirming the database is likely empty and RLS or permissions are blocking new account creation.
+- Login attempt for 'Dave' confirmed account does not exist.
+

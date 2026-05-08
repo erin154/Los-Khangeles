@@ -1,0 +1,91 @@
+1
+/
+1
+[0] (751,149)<a class='nextjs-container-build-error-version-status dialog-exclude-closing-from-outside-click' href='https://nextjs.org/docs/messages/version-staleness' />
+	[1] (735,149)<span >Next.js 16.2.4 (stale) />
+	[2] (797,149)<span >Turbopack />
+Build Error
+[3] (767,209)<button aria-label='Copy Error Info' class='copy-error-button nextjs-data-copy-button nextjs-data-copy-button--initial' title='Copy Error Info' />
+[4] (815,209)<button class='nodejs-inspector-button' title='Attach Node.js inspector' />
+Expected ',', got '!'
+./lib/supabase.js (6:49)
+[5] (807,335)<button aria-label='Open in editor' />
+	[6] (807,334)<span  />
+Expected
+',',
+got
+'!'
+4
+|
+const
+supabaseAnonKey
+=
+process.env.
+SUPABASE_ANON_KEY
+5
+|
+>
+6
+|
+export
+const
+supabase
+=
+createClient(supabaseUrl!,
+supabaseAnonKey!)
+|
+^
+Parsing
+ecmascript
+source
+code
+failed
+Import
+traces:
+Client
+Component
+Browser:
+./lib/supabase.js
+[Client
+Component
+Browser]
+./components/Nav.tsx
+[Client
+Component
+Browser]
+./app/dashboard/page.tsx
+[Client
+Component
+Browser]
+./app/dashboard/page.tsx
+[Server
+Component]
+Client
+Component
+SSR:
+./lib/supabase.js
+[Client
+Component
+SSR]
+./components/Nav.tsx
+[Client
+Component
+SSR]
+./app/dashboard/page.tsx
+[Client
+Component
+SSR]
+./app/dashboard/page.tsx
+[Server
+Component]
+1
+2
+[7] (47,946)<div  />
+	[8] (47,946)<div  />
+		[9] (47,946)<div  />
+			[10] (26,946)<button aria-label='Open Next.js Dev Tools' id='next-logo' />
+			[11] (59,946)<div  />
+				[12] (59,946)<button aria-label='Open issues overlay' />
+					[13] (47,946)<div  />
+						[14] (47,946)<div >1 />
+					[15] (63,946)<div >Issue />

@@ -89,7 +89,32 @@ export async function performTransaction(formData: any) {
   const { error: txError } = await adminClient.from('transactions').insert(txData)
   if (txError) return { error: txError.message }
 
-  // Trigger balance updates (usually handled by DB triggers, but we revalidate)
+  // Explicitly update balances — no DB trigger exists on this project.
+  // Deduct from sender
+  const { error: senderUpdateErr } = await adminClient
+    .from('accounts')
+    .update({ balance: senderAcc.balance - amountNum })
+    .eq('id', senderAcc.id)
+
+  if (senderUpdateErr) return { error: 'Balance update failed: ' + senderUpdateErr.message }
+
+  // Credit recipient (if a recipient is set)
+  const finalRecipientId = txData.recipient_id
+  if (finalRecipientId) {
+    const { data: recipAcc } = await adminClient
+      .from('accounts')
+      .select('balance')
+      .eq('id', finalRecipientId)
+      .single()
+
+    if (recipAcc) {
+      await adminClient
+        .from('accounts')
+        .update({ balance: recipAcc.balance + amountNum })
+        .eq('id', finalRecipientId)
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/history')
   

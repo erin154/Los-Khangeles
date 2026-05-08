@@ -5,13 +5,14 @@ import { revalidatePath } from 'next/cache'
 
 export async function getDashboardData() {
   const supabase = await createServerClient()
+  const adminSb = createAdminClient()
   
-  // 1. Get Session
+  // 1. Authenticate
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) throw new Error('Unauthorized')
 
-  // 2. Get Account
-  const { data: account, error: accError } = await supabase
+  // 2. Get Account — use admin client for always-fresh balance (bypasses any RLS cache)
+  const { data: account, error: accError } = await adminSb
     .from('accounts')
     .select('*')
     .eq('auth_user_id', user.id)
@@ -19,8 +20,8 @@ export async function getDashboardData() {
 
   if (accError || !account) throw new Error('Account not found')
 
-  // 3. Get Transactions
-  const { data: transactions } = await supabase
+  // 3. Get Transactions — fresh read via admin client
+  const { data: transactions } = await adminSb
     .from('transactions')
     .select(`*, sender:sender_id(display_name), recipient:recipient_id(display_name)`)
     .or(`sender_id.eq.${account.id},recipient_id.eq.${account.id}`)
@@ -132,11 +133,23 @@ export async function getCourtData(tab: string) {
 }
 
 export async function getAccountDetail(id: string) {
-    const supabase = createAdminClient()
-    
+    // Auth gate: only government (court) accounts may view another account's history
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error('Unauthorized')
+
+    const adminSb = createAdminClient()
+    const { data: caller } = await adminSb
+        .from('accounts')
+        .select('type')
+        .eq('auth_user_id', user.id)
+        .single()
+
+    if (caller?.type !== 'government') throw new Error('Forbidden')
+
     const [{ data: acc }, { data: txns }] = await Promise.all([
-      supabase.from('accounts').select('*').eq('id', id).single(),
-      supabase
+      adminSb.from('accounts').select('*').eq('id', id).single(),
+      adminSb
         .from('transactions')
         .select(`*, sender:sender_id(display_name), recipient:recipient_id(display_name)`)
         .or(`sender_id.eq.${id},recipient_id.eq.${id}`)
@@ -147,12 +160,24 @@ export async function getAccountDetail(id: string) {
 }
 
 export async function getLoanDetail(id: string) {
-    const supabase = createAdminClient()
-    
+    // Auth gate: only government (court) accounts may view loan details
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error('Unauthorized')
+
+    const adminSb = createAdminClient()
+    const { data: caller } = await adminSb
+        .from('accounts')
+        .select('type')
+        .eq('auth_user_id', user.id)
+        .single()
+
+    if (caller?.type !== 'government') throw new Error('Forbidden')
+
     const [{ data: account }, { data: loan }, { data: history }] = await Promise.all([
-        supabase.from('accounts').select('*').eq('id', id).single(),
-        supabase.from('loan_balances').select('*').eq('account_id', id).single(),
-        supabase
+        adminSb.from('accounts').select('*').eq('id', id).single(),
+        adminSb.from('loan_balances').select('*').eq('account_id', id).single(),
+        adminSb
           .from('transactions')
           .select('*')
           .eq('sender_id', id)

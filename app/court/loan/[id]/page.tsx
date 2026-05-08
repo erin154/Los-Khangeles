@@ -31,13 +31,17 @@ export default function LoanDetailPage() {
   useEffect(() => { if (id) loadLoanDetail() }, [id])
 
     async function loadLoanDetail() {
-        const { account: acc, loan, history } = await getLoanDetail(id)
-      
-        if (!acc) { router.push('/court'); return }
-        setAccount(acc)
-        setInterest(loan?.interest_accrued ?? 0)
-        setLoanHistory(history || [])
-        setLoading(false)
+        try {
+          const { account: acc, loan, history } = await getLoanDetail(id)
+          if (!acc) { router.push('/court'); return }
+          setAccount(acc)
+          setInterest(loan?.interest_accrued ?? 0)
+          setLoanHistory(history || [])
+          setLoading(false)
+        } catch (err: any) {
+          if (err?.message === 'Forbidden') { router.push('/court'); return }
+          router.push('/')
+        }
       }
 
   const totalDisbursed = loanHistory

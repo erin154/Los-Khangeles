@@ -47,12 +47,17 @@ export default function AccountDetailPage() {
   useEffect(() => { if (id) loadAccount() }, [id])
 
   async function loadAccount() {
-    const { account: acc, transactions: txns } = await getAccountDetail(id)
-
-    if (!acc) { router.push('/court'); return }
-    setAccount(acc)
-    setTransactions(txns || [])
-    setLoading(false)
+    try {
+      const { account: acc, transactions: txns } = await getAccountDetail(id)
+      if (!acc) { router.push('/court'); return }
+      setAccount(acc)
+      setTransactions(txns || [])
+      setLoading(false)
+    } catch (err: any) {
+      // Unauthorized or Forbidden — send non-government users to login
+      if (err?.message === 'Forbidden') { router.push('/court'); return }
+      router.push('/')
+    }
   }
 
   if (loading) {
